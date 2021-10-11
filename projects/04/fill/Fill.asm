@@ -11,4 +11,48 @@
 // "white" in every pixel;
 // the screen should remain fully clear as long as no key is pressed.
 
-// Put your code here.
+    @KBD
+    D=A
+    @kbdadr
+    M=D // keyboard addresses
+(LOOP)
+    @SCREEN
+    D=A
+    @idx
+    M=D // index of memory address 
+
+    @KBD
+    D=M
+    @BLACK
+    D;JGT
+
+    @color
+    M=0
+    @WRITE
+    0;JMP
+
+(BLACK)
+    @color
+    M=-1
+    @WRITE
+    0;JMP
+
+(WRITE)
+    @color
+    D=M
+    @idx
+    A=M
+    M=D
+
+    @idx
+    M=M+1
+    D=M
+    @kbdadr
+    D=M-D
+    @LOOP
+    D;JEQ
+    
+    @WRITE
+    0;JMP
+@LOOP
+0;JMP
