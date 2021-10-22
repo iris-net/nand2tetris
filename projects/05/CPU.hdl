@@ -39,5 +39,64 @@ CHIP CPU {
         pc[15];          // address of next instruction
 
     PARTS:
-    // Put your code here:
+        // intrucation: ixxa cccc ccdd djjj
+        //     i=0 A-instruction
+        //     i=1 C-instruction
+        //     a=0 operate A register input
+        //     a=1 operate memory input
+        //     c comp part
+        //     d destination part
+        //     j jump part depends on ALU result
+        And(a=instruction[15], b=true, out=isCinst);
+        Not(in=isCinst, out=isAinst);
+
+        And(a=instruction[5], b=true, out=isAdest);
+        And(a=instruction[4], b=true, out=isDdest);
+        
+        And(a=isAdest, b=isCinst, out=isCinstAndAdest);
+        Mux16(a=instruction, b=outALU, sel=isCinstAndAdest, out=inA);
+
+        Or(a=isCinstAndAdest, b=isAinst, out=loadA); // loadA = A-instruction || (C-instruction && dest for A register)
+        ARegister(in=inA, load=loadA, out=outA, out[0..14]=addressM);
+
+        And(a=isDdest, b=isCinst, out=loadD); // loadD = C-instruction && dest for D register
+        DRegister(in=outALU, load=loadD, out=outD);
+
+        Mux16(a=outA, b=inM, sel=instruction[12], out=outAorM);
+
+        ALU(
+            x=outD, 
+            y=outAorM, 
+            zx=instruction[11], 
+            nx=instruction[10], 
+            zy=instruction[9], 
+            ny=instruction[8], 
+            f=instruction[7], 
+            no=instruction[6], 
+            out=outALU, 
+            out=outM,
+            zr=isZero, 
+            ng=isNeg
+        );
+
+        
+        
+        Not(in=isNeg, out=isNonNeg);
+        Not(in=isZero, out=isNonZero);
+        And(a=isNonNeg, b=isNonZero, out=isPos);
+
+
+        And(a=isNeg, b=instruction[2], out=JLT);
+        And(a=isZero, b=instruction[1], out=JEQ);
+        And(a=isPos, b=instruction[0], out=JGT);
+
+        Or(a=JLT, b=JEQ, out=JLE);
+        Or(a=JLE, b=JGT, out=jump);
+
+        And(a=jump, b=isCinst, out=loadPC);
+        Not(in=loadPC, out=incPC);
+
+        PC(in=outA, load=loadPC, inc=incPC, reset=reset, out[0..14]=pc);
+
+        And(a=isCinst, b=instruction[3], out=writeM);
 }
